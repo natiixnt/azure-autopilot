@@ -1,0 +1,23 @@
+{
+  "properties": {
+    "displayName": "Storage accounts: HTTPS only + min TLS 1.2",
+    "description": "Denies storage account creation/update without HTTPS-only and minimum TLS 1.2.",
+    "mode": "Indexed",
+    "policyType": "Custom",
+    "metadata": { "category": "Storage" },
+    "policyRule": {
+      "if": {
+        "allOf": [
+          { "field": "type", "equals": "Microsoft.Storage/storageAccounts" },
+          {
+            "anyOf": [
+              { "field": "Microsoft.Storage/storageAccounts/supportsHttpsTrafficOnly", "notEquals": "true" },
+              { "field": "Microsoft.Storage/storageAccounts/minimumTlsVersion", "notEquals": "TLS1_2" }
+            ]
+          }
+        ]
+      },
+      "then": { "effect": "deny" }
+    }
+  }
+}

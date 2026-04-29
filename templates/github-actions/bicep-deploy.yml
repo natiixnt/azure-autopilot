@@ -1,0 +1,82 @@
+name: Bicep deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'bicep/**'
+      - '.github/workflows/bicep-deploy.yml'
+  workflow_dispatch:
+    inputs:
+      env:
+        type: choice
+        options: [dev, test, prod]
+        default: dev
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy-dev:
+    if: github.event.inputs.env == 'dev' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - run: |
+          az deployment group create \
+              --resource-group "rg-${{ vars.PROJECT }}-dev" \
+              --template-file bicep/main.bicep \
+              --parameters bicep/parameters/dev.bicepparam \
+              --name "deploy-${{ github.run_id }}"
+
+  deploy-test:
+    needs: deploy-dev
+    if: github.event.inputs.env == 'test' || (github.event_name == 'push' && success())
+    runs-on: ubuntu-latest
+    environment: test          # gated approval in GitHub env settings
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - run: |
+          az deployment group create \
+              --resource-group "rg-${{ vars.PROJECT }}-test" \
+              --template-file bicep/main.bicep \
+              --parameters bicep/parameters/test.bicepparam \
+              --name "deploy-${{ github.run_id }}"
+
+  deploy-prod:
+    needs: deploy-test
+    if: github.event.inputs.env == 'prod' || (github.event_name == 'push' && success())
+    runs-on: ubuntu-latest
+    environment: prod          # stricter approvers
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: What-if (visible in logs for review)
+        run: |
+          az deployment group what-if \
+              --resource-group "rg-${{ vars.PROJECT }}-prod" \
+              --template-file bicep/main.bicep \
+              --parameters bicep/parameters/prod.bicepparam
+      - name: Deploy
+        run: |
+          az deployment group create \
+              --resource-group "rg-${{ vars.PROJECT }}-prod" \
+              --template-file bicep/main.bicep \
+              --parameters bicep/parameters/prod.bicepparam \
+              --name "deploy-${{ github.run_id }}"

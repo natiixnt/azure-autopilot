@@ -1,0 +1,31 @@
+{
+  "properties": {
+    "displayName": "Require tags on resource groups",
+    "description": "Denies creation of resource groups without the required tags: Environment, Project, ManagedBy, CostCenter, Owner.",
+    "mode": "All",
+    "policyType": "Custom",
+    "metadata": {
+      "category": "Tags"
+    },
+    "parameters": {},
+    "policyRule": {
+      "if": {
+        "allOf": [
+          { "field": "type", "equals": "Microsoft.Resources/subscriptions/resourceGroups" },
+          {
+            "anyOf": [
+              { "field": "tags['Environment']", "exists": "false" },
+              { "field": "tags['Project']", "exists": "false" },
+              { "field": "tags['ManagedBy']", "exists": "false" },
+              { "field": "tags['CostCenter']", "exists": "false" },
+              { "field": "tags['Owner']", "exists": "false" }
+            ]
+          }
+        ]
+      },
+      "then": {
+        "effect": "deny"
+      }
+    }
+  }
+}

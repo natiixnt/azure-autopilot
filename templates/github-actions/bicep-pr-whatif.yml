@@ -1,0 +1,59 @@
+name: Bicep what-if
+
+on:
+  pull_request:
+    paths:
+      - 'bicep/**'
+      - '.github/workflows/bicep-*.yml'
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+jobs:
+  whatif:
+    runs-on: ubuntu-latest
+    environment: dev   # uses dev variables for what-if; switch per branch convention if needed
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Bicep build
+        run: az bicep build --file bicep/main.bicep --stdout > /dev/null
+
+      - name: What-if
+        id: whatif
+        run: |
+          set +e
+          out=$(az deployment group what-if \
+              --resource-group "rg-${{ vars.PROJECT }}-dev" \
+              --template-file bicep/main.bicep \
+              --parameters bicep/parameters/dev.bicepparam \
+              --no-pretty-print 2>&1)
+          rc=$?
+          {
+            echo "whatif<<EOF"
+            echo "$out"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+          exit $rc
+
+      - name: Comment PR with diff
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const out = `${{ steps.whatif.outputs.whatif }}`;
+            const body = `### Bicep what-if (dev)\n\n<details><summary>Diff</summary>\n\n\`\`\`\n${out.slice(0, 60000)}\n\`\`\`\n</details>`;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body,
+            });

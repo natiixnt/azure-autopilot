@@ -1,0 +1,16 @@
+using '../main.bicep'
+
+param namePrefix = 'acme'
+param environment = 'prod'
+param location = 'westeurope'
+param sqlAdminGroupObjectId = '00000000-0000-0000-0000-000000000000'
+
+// Production SKUs
+// param postgresSku = 'Standard_D2ds_v5'
+// param postgresHa = 'ZoneRedundant'
+// param caMinReplicas = 2
+// param caMaxReplicas = 10
+// param caWorkloadProfile = 'D4'
+// param redisSku = 'Premium'
+// param storageSku = 'Standard_GZRS'
+// param frontDoorSku = 'Premium_AzureFrontDoor'

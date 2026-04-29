@@ -1,0 +1,31 @@
+# Required tags on every resource group + (inherited) every resource.
+# Apply via Azure Policy: templates/policies/require-tags.json (deny on RG)
+# + Azure Policy "Inherit a tag from the resource group" (DeployIfNotExists per-resource)
+
+required:
+  Environment: dev | test | prod | shared
+  Project: <slug>            # e.g. acme-portal
+  ManagedBy: bicep | terraform | manual
+  CostCenter: <code>         # e.g. ENG-Platform
+  Owner: <email>             # accountable engineer
+
+optional:
+  DataClassification: public | internal | confidential | restricted
+  Compliance: pci | hipaa | gdpr | soc2 | none
+  Workload: webapp | api | batch | data | ml | iot
+  Region: westeurope | northeurope | ...
+  DeleteBy: <yyyy-mm-dd>     # for ephemeral / sandbox resources
+  Application: <app-id>      # for cross-resource tracing
+  RepositoryUrl: <git URL>   # so resources point back to source
+
+# Apply at deploy time; inherit from RG via policy:
+example_resource_group:
+  Environment: prod
+  Project: acme-portal
+  ManagedBy: bicep
+  CostCenter: ENG-Platform
+  Owner: platform-team@acme.com
+  DataClassification: internal
+  Compliance: gdpr
+  Workload: webapp
+  RepositoryUrl: https://github.com/acme/acme-portal-infra

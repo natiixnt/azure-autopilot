@@ -1,0 +1,47 @@
+{
+  "properties": {
+    "displayName": "Allowed locations",
+    "description": "Restricts where new resources can be deployed. Default whitelist: westeurope, northeurope, polandcentral. Customize via parameter.",
+    "mode": "Indexed",
+    "policyType": "Custom",
+    "metadata": {
+      "category": "General"
+    },
+    "parameters": {
+      "listOfAllowedLocations": {
+        "type": "Array",
+        "metadata": {
+          "displayName": "Allowed locations",
+          "strongType": "location",
+          "description": "Whitelist of regions where resources may be deployed."
+        },
+        "defaultValue": [
+          "westeurope",
+          "northeurope",
+          "polandcentral"
+        ]
+      }
+    },
+    "policyRule": {
+      "if": {
+        "allOf": [
+          {
+            "field": "location",
+            "notIn": "[parameters('listOfAllowedLocations')]"
+          },
+          {
+            "field": "location",
+            "notEquals": "global"
+          },
+          {
+            "field": "type",
+            "notEquals": "Microsoft.Resources/resourceGroups"
+          }
+        ]
+      },
+      "then": {
+        "effect": "deny"
+      }
+    }
+  }
+}
